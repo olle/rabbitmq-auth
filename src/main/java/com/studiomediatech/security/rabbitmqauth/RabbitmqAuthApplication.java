@@ -1,13 +1,16 @@
 package com.studiomediatech.security.rabbitmqauth;
 
+import java.util.Arrays;
 import java.util.Objects;
 import java.util.Optional;
 
 import org.springframework.amqp.core.AbstractDeclarable;
+import org.springframework.amqp.core.AmqpTemplate;
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;
 import org.springframework.amqp.core.FanoutExchange;
 import org.springframework.amqp.core.Message;
+import org.springframework.amqp.core.MessageBuilder;
 import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.core.QueueBuilder;
 import org.springframework.amqp.rabbit.annotation.EnableRabbit;
@@ -15,8 +18,13 @@ import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.EnableAspectJAutoProxy;
+import org.springframework.context.event.EventListener;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.RememberMeAuthenticationToken;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -26,6 +34,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Component;
 
 @SpringBootApplication
@@ -36,7 +45,7 @@ public class RabbitmqAuthApplication {
 	}
 
 	@Bean
-	public AuthenticationProvider our() {
+	public AuthenticationProvider our(final ApplicationEventPublisher publisher) {
 
 		return new AuthenticationProvider() {
 
@@ -46,14 +55,26 @@ public class RabbitmqAuthApplication {
 			}
 
 			@Override
-			public Authentication authenticate(Authentication authentication) throws AuthenticationException {
+			public Authentication authenticate(final Authentication authentication) throws AuthenticationException {
 
-				if (Objects.nonNull(authentication)) {
-					String credentials = (String) authentication.getCredentials();
-					authentication.setAuthenticated(credentials.equalsIgnoreCase("foobar"));
+				if (Objects.isNull(authentication)) {
+					return authentication;
 				}
 
-				return authentication;
+				String credentials = (String) authentication.getCredentials();
+
+				if (Objects.isNull(credentials)) {
+					return authentication;
+				}
+
+				boolean isAuthenticated = credentials.equalsIgnoreCase("foobar");
+				if (!isAuthenticated) {
+					return authentication;
+				}
+
+				publisher.publishEvent(new IsAuthenticated());
+				return new UsernamePasswordAuthenticationToken(authentication.getPrincipal(),
+						authentication.getCredentials(), Arrays.asList(new SimpleGrantedAuthority("ROLE_USER")));
 			}
 		};
 	}
@@ -64,7 +85,12 @@ public class RabbitmqAuthApplication {
 
 		@Override
 		protected void configure(HttpSecurity http) throws Exception {
-			http.authorizeRequests().antMatchers("/**").fullyAuthenticated().and().formLogin().permitAll();
+			http.authorizeRequests()
+				.antMatchers("/user").hasAnyRole("USER")
+				.antMatchers("/admin").hasAnyRole("ADMIN")
+				.antMatchers("/**").fullyAuthenticated()
+			.and()
+				.formLogin().permitAll();
 		}
 	}
 
@@ -105,4 +131,31 @@ public class RabbitmqAuthApplication {
 			logger().info(">>---> Received auth event: {}", message);
 		}
 	}
+
+	// @Component
+	// @EnableAsync
+	// @EnableAspectJAutoProxy(proxyTargetClass = true)
+	// public static class Publisher implements Loggable {
+	//
+	// @Autowired
+	// AmqpTemplate amqpTemplate;
+	//
+	// @EventListener
+	// public void on(Publisher.Authenticated _event) {
+	// send();
+	// }
+	//
+	// @Async
+	// private void send() {
+	// amqpTemplate.send("authentication", "test",
+	// MessageBuilder.withBody("helo".getBytes()).build());
+	// }
+	//
+	//
+	//
+	//
+	// static class Authenticated {
+	// // OK
+	// }
+	// }
 }
