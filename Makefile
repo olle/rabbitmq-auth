@@ -4,4 +4,4 @@ run:
 	@mvn clean spring-boot:run
 
 debug:
-	@mvnDebug cleanclean spring-boot:run
+	@mvnDebug clean spring-boot:run
