@@ -15,12 +15,15 @@ import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.core.QueueBuilder;
 import org.springframework.amqp.rabbit.annotation.EnableRabbit;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+
 import org.springframework.context.annotation.EnableAspectJAutoProxy;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
@@ -29,11 +32,13 @@ import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.RememberMeAuthenticationToken;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
+
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Component;
 
@@ -44,44 +49,16 @@ public class RabbitmqAuthApplication {
 		SpringApplication.run(RabbitmqAuthApplication.class, args);
 	}
 
-	@Bean
-	public AuthenticationProvider our(final ApplicationEventPublisher publisher) {
-
-		return new AuthenticationProvider() {
-
-			@Override
-			public boolean supports(Class<?> authentication) {
-				return (UsernamePasswordAuthenticationToken.class.isAssignableFrom(authentication));
-			}
-
-			@Override
-			public Authentication authenticate(final Authentication authentication) throws AuthenticationException {
-
-				if (Objects.isNull(authentication)) {
-					return authentication;
-				}
-
-				String credentials = (String) authentication.getCredentials();
-
-				if (Objects.isNull(credentials)) {
-					return authentication;
-				}
-
-				boolean isAuthenticated = credentials.equalsIgnoreCase("foobar");
-				if (!isAuthenticated) {
-					return authentication;
-				}
-
-				publisher.publishEvent(new IsAuthenticated());
-				return new UsernamePasswordAuthenticationToken(authentication.getPrincipal(),
-						authentication.getCredentials(), Arrays.asList(new SimpleGrantedAuthority("ROLE_USER")));
-			}
-		};
-	}
-
 	@Configuration
 	@EnableWebSecurity
 	public static class SecurityConfig extends WebSecurityConfigurerAdapter {
+
+    private final AuthHandler authHandler;
+
+    @Autowired
+    public SecurityConfig(AuthHandler authHandler) {
+        this.authHandler = authHandler;
+    }
 
 		@Override
 		protected void configure(HttpSecurity http) throws Exception {
@@ -90,7 +67,10 @@ public class RabbitmqAuthApplication {
 				.antMatchers("/admin").hasAnyRole("ADMIN")
 				.antMatchers("/**").fullyAuthenticated()
 			.and()
-				.formLogin().permitAll();
+				.formLogin()
+        .successHandler(authHandler)
+        .failureHandler(authHandler)
+        .permitAll();
 		}
 	}
 
@@ -132,30 +112,60 @@ public class RabbitmqAuthApplication {
 		}
 	}
 
-	// @Component
-	// @EnableAsync
-	// @EnableAspectJAutoProxy(proxyTargetClass = true)
-	// public static class Publisher implements Loggable {
-	//
-	// @Autowired
-	// AmqpTemplate amqpTemplate;
-	//
-	// @EventListener
-	// public void on(Publisher.Authenticated _event) {
-	// send();
-	// }
-	//
-	// @Async
-	// private void send() {
-	// amqpTemplate.send("authentication", "test",
-	// MessageBuilder.withBody("helo".getBytes()).build());
-	// }
-	//
-	//
-	//
-	//
-	// static class Authenticated {
-	// // OK
-	// }
-	// }
+}
+
+@Controller
+class PageController {
+
+    @GetMapping("/")
+    public String index() {
+        return "index";
+    }
+}
+
+@Component
+class AuthHandler implements AuthenticationSuccessHandler, AuthenticationFailureHandler, Loggable {
+
+    private final AmqpTemplate amqpTemplate;
+
+    @Autowired
+    public AuthHandler(AmqpTemplate amqpTemplate) {
+
+        this.amqpTemplate = amqpTemplate;
+        logger().info("Created new auth handler {}", this);
+    }
+
+    @Override
+    public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
+        logger().info("Sending auth success");
+        amqpTemplate.send(
+                "authentication",
+                "auth.success",
+                MessageBuilder.withBody("{}".getBytes()).setContentEncoding("UTF-8").build());
+    }
+
+    @Override
+    public void onAuthenticationFailure(HttpServletRequest request, HttpServletResponse response, AuthenticationException exception) throws IOException, ServletException {
+        logger().info("Sending auth failed");
+        amqpTemplate.send(
+                "authentication",
+                "auth.failed",
+                MessageBuilder.withBody("{}".getBytes()).setContentEncoding("UTF-8").build());
+    }
+}
+
+@Component
+class UserService implements UserDetailsService {
+
+    private final InMemoryUserDetailsManager manager;
+
+    public UserService() {
+        this.manager = new InMemoryUserDetailsManager();
+        this.manager.createUser(User.withUsername("foo").password("bar").roles("USER", "ADMIN").build());
+    }
+
+    @Override
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        return this.manager.loadUserByUsername(username);
+    }
 }
