@@ -1,5 +1,7 @@
 package com.studiomediatech.security.spring.rabbitmq.autoconfigure;
 
+import com.studiomediatech.security.spring.rabbitmq.logging.Loggable;
+
 import org.springframework.amqp.core.AbstractDeclarable;
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;
@@ -7,10 +9,10 @@ import org.springframework.amqp.core.FanoutExchange;
 import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.core.QueueBuilder;
 import org.springframework.amqp.rabbit.annotation.EnableRabbit;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import com.studiomediatech.security.spring.rabbitmq.logging.Loggable;
 
 @Configuration
 @EnableRabbit
@@ -34,7 +36,7 @@ public class RabbitMqConfig implements Loggable {
     @Bean
     public Queue authQueue() {
 
-        return (Queue) logAndReturn(QueueBuilder.nonDurable().exclusive().autoDelete().build());
+        return (Queue) logAndReturn(QueueBuilder.nonDurable().autoDelete().build());
     }
 
 

@@ -1,5 +1,7 @@
 package com.studiomediatech.security.spring.rabbitmq.autoconfigure;
 
+import com.studiomediatech.security.spring.rabbitmq.event.AuthenticationEventHandler;
+
 import org.springframework.beans.factory.annotation.Autowired;
 
 import org.springframework.context.annotation.Configuration;
@@ -8,17 +10,15 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 
-import com.studiomediatech.security.spring.rabbitmq.event.AuthHandler;
-
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
-    private final AuthHandler authHandler;
+    private final AuthenticationEventHandler authHandler;
 
     @Autowired
-    public SecurityConfig(AuthHandler authHandler) {
+    public SecurityConfig(AuthenticationEventHandler authHandler) {
 
         this.authHandler = authHandler;
     }
@@ -26,17 +26,18 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     @Override
     protected void configure(HttpSecurity http) throws Exception {
 
+        //J-
         http.authorizeRequests()
-            .antMatchers("/user")
-            .hasAnyRole("USER")
-            .antMatchers("/admin")
-            .hasAnyRole("ADMIN")
-            .antMatchers("/**")
-            .fullyAuthenticated()
+                .antMatchers("/user/**").hasAnyRole("USER", "ADMIN")
+                .antMatchers("/admin/**").hasAnyRole("ADMIN")
+                .antMatchers("/**").authenticated()
             .and()
-            .formLogin()
-            .successHandler(authHandler)
-            .failureHandler(authHandler)
-            .permitAll();
+                .formLogin().permitAll()
+                .successHandler(authHandler)
+                .failureHandler(authHandler)
+                .successForwardUrl("/user")
+            .and()
+                .csrf().disable();
+        //J+
     }
 }

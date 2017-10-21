@@ -16,9 +16,10 @@ Getting started
 Event reference
 ---------------
 
-* `principal.created` - published in the event that a new user with credentials
-  was created.
+* _A new user principal was just added_
 
+* _A user principal was successfully authenticated_
 
+* _A user principal failed to be authenticated_
 
 Happy hacking!
