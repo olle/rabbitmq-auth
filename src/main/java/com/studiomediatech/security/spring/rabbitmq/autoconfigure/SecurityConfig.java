@@ -7,12 +7,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 
 
 @Configuration
-@EnableWebSecurity
 public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
     private final AuthenticationEventHandler authHandler;
@@ -24,7 +22,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     }
 
     @Override
-    protected void configure(HttpSecurity http) throws Exception {
+    public void configure(HttpSecurity http) throws Exception {
 
         //J-
         http.authorizeRequests()
@@ -35,9 +33,11 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .formLogin().permitAll()
                 .successHandler(authHandler)
                 .failureHandler(authHandler)
-                .successForwardUrl("/user")
+                .defaultSuccessUrl("/user")
             .and()
-                .csrf().disable();
+                .logout()
+                .permitAll()
+                .invalidateHttpSession(true);
         //J+
     }
 }

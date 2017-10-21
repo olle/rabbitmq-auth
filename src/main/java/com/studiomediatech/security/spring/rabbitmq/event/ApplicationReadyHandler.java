@@ -33,7 +33,7 @@ public class ApplicationReadyHandler implements Loggable {
         logger().info("Handling application ready event {}", _event);
 
         Envelope envelope = new Envelope();
-        envelope.setUserDetails(User.withUsername("foo").password("bar").roles("USER", "ADMIN").build());
+        envelope.setUserDetails(User.withUsername("foo").password("bar").roles("USER", "ADMIN", "ACTUATOR").build());
 
         amqpTemplate.convertAndSend("authentication", "user.added", envelope);
     }
