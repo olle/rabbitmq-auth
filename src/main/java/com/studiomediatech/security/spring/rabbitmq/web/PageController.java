@@ -1,9 +1,9 @@
-package com.studiomediatech.security.rabbitmqauth;
+package com.studiomediatech.security.spring.rabbitmq.web;
 
 import org.springframework.web.bind.annotation.GetMapping;
 
 @org.springframework.stereotype.Controller
-public class Controller {
+public class PageController {
 
 	@GetMapping({"/", "index"})
 	public String index() {

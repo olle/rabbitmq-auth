@@ -13,4 +13,12 @@ Getting started
 * Maven
 * Docker
 
+Event reference
+---------------
+
+* `principal.created` - published in the event that a new user with credentials
+  was created.
+
+
+
 Happy hacking!
