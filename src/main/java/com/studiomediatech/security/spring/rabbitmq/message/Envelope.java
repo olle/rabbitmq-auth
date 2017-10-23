@@ -1,7 +1,7 @@
 package com.studiomediatech.security.spring.rabbitmq.message;
 
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.authentication.event.AbstractAuthenticationFailureEvent;
+import org.springframework.security.authentication.event.AuthenticationSuccessEvent;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.io.Serializable;
@@ -12,8 +12,8 @@ public final class Envelope implements Serializable {
     private static final long serialVersionUID = -6019483538453925014L;
 
     private UserDetails userDetails = null;
-    private Authentication authentication = null;
-    private AuthenticationException authenticationException = null;
+    private AuthenticationSuccessEvent authSuccess = null;
+    private AbstractAuthenticationFailureEvent authFailure = null;
 
     public UserDetails getUserDetails() {
 
@@ -27,34 +27,40 @@ public final class Envelope implements Serializable {
     }
 
 
-    public Authentication getAuthentication() {
+    public AuthenticationSuccessEvent getAuthSuccess() {
 
-        return authentication;
+        return authSuccess;
     }
 
 
-    public void setAuthentication(Authentication authentication) {
+    public void setAuthSuccess(AuthenticationSuccessEvent authSuccess) {
 
-        this.authentication = authentication;
+        this.authSuccess = authSuccess;
     }
 
 
-    public AuthenticationException getAuthenticationException() {
+    public AbstractAuthenticationFailureEvent getAuthFailure() {
 
-        return authenticationException;
+        return authFailure;
     }
 
 
-    public void setAuthenticationException(AuthenticationException authenticationException) {
+    public void setAuthFailure(AbstractAuthenticationFailureEvent authFailure) {
 
-        this.authenticationException = authenticationException;
+        this.authFailure = authFailure;
+    }
+
+
+    public static long getSerialversionuid() {
+
+        return serialVersionUID;
     }
 
 
     @Override
     public String toString() {
 
-        return "Envelope [userDetails=" + userDetails + ", authentication=" + authentication
-            + ", authenticationException=" + authenticationException + "]";
+        return "Envelope [userDetails=" + userDetails + ", authSuccess=" + authSuccess + ", authFailure=" + authFailure
+            + "]";
     }
 }
