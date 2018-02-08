@@ -12,8 +12,6 @@ import org.springframework.context.ApplicationEventPublisher;
 
 import org.springframework.messaging.handler.annotation.Payload;
 
-import org.springframework.security.authentication.event.AbstractAuthenticationFailureEvent;
-
 import org.springframework.stereotype.Component;
 
 
@@ -33,15 +31,14 @@ public class Consumer implements Loggable {
         logger().info(">>---> Received message {} with envelope {}", message, envelope);
 
         try {
-            String receivedRoutingKey = message.getMessageProperties().getReceivedRoutingKey();
+            String routingKey = message.getMessageProperties().getReceivedRoutingKey();
 
-            if ("user.added".equalsIgnoreCase(receivedRoutingKey)) {
+            if ("user.added".equalsIgnoreCase(routingKey)) {
                 publisher.publishEvent(new UserAddedEvent(envelope.getUserDetails()));
-            } else if ("auth.success".equalsIgnoreCase(receivedRoutingKey)) {
+            } else if ("auth.success".equalsIgnoreCase(routingKey)) {
                 publisher.publishEvent(new AuthSuccessEvent(envelope.getAuthSuccess()));
-            } else if ("auth.failed".equalsIgnoreCase(receivedRoutingKey)) {
-                AbstractAuthenticationFailureEvent authFailure = envelope.getAuthFailure();
-                publisher.publishEvent(new AuthFailedEvent(authFailure));
+            } else if ("auth.failed".equalsIgnoreCase(routingKey)) {
+                publisher.publishEvent(new AuthFailedEvent(envelope.getAuthFailure()));
             }
         } catch (Throwable e) {
             // OK

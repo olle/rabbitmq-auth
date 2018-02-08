@@ -15,6 +15,29 @@ public final class Envelope implements Serializable {
     private AuthenticationSuccessEvent authSuccess = null;
     private AbstractAuthenticationFailureEvent authFailure = null;
 
+    protected Envelope() {
+
+        // OK
+    }
+
+
+    private Envelope(UserDetails userDetails) {
+
+        this.userDetails = userDetails;
+    }
+
+
+    private Envelope(AuthenticationSuccessEvent authSuccess) {
+
+        this.authSuccess = authSuccess;
+    }
+
+
+    private Envelope(AbstractAuthenticationFailureEvent authFailure) {
+
+        this.authFailure = authFailure;
+    }
+
     public UserDetails getUserDetails() {
 
         return userDetails;
@@ -62,5 +85,23 @@ public final class Envelope implements Serializable {
 
         return "Envelope [userDetails=" + userDetails + ", authSuccess=" + authSuccess + ", authFailure=" + authFailure
             + "]";
+    }
+
+
+    public static Envelope valueOf(UserDetails userDetails) {
+
+        return new Envelope(userDetails);
+    }
+
+
+    public static Envelope valueOf(AuthenticationSuccessEvent event) {
+
+        return new Envelope(event);
+    }
+
+
+    public static Envelope valueOf(AbstractAuthenticationFailureEvent event) {
+
+        return new Envelope(event);
     }
 }

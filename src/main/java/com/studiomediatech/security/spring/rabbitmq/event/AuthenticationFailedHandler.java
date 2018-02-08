@@ -29,10 +29,6 @@ public class AuthenticationFailedHandler implements Loggable {
     public void on(AbstractAuthenticationFailureEvent event) {
 
         logger().info("Sending auth failed");
-
-        Envelope envelope = new Envelope();
-        envelope.setAuthFailure(event);
-
-        amqpTemplate.convertAndSend("authentication", "auth.failed", envelope);
+        amqpTemplate.convertAndSend("authentication", "auth.failed", Envelope.valueOf(event));
     }
 }
